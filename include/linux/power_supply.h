@@ -18,6 +18,7 @@
 #include <linux/leds.h>
 #include <linux/spinlock.h>
 #include <linux/notifier.h>
+#include <linux/types.h>
 
 /*
  * All voltages, currents, charges, energies, time and temperatures in uV,
@@ -38,6 +39,7 @@ enum {
 	POWER_SUPPLY_STATUS_DISCHARGING,
 	POWER_SUPPLY_STATUS_NOT_CHARGING,
 	POWER_SUPPLY_STATUS_FULL,
+	POWER_SUPPLY_STATUS_CMD_DISCHARGING,
 };
 
 enum {
@@ -57,6 +59,10 @@ enum {
 	POWER_SUPPLY_HEALTH_COLD,
 	POWER_SUPPLY_HEALTH_WATCHDOG_TIMER_EXPIRE,
 	POWER_SUPPLY_HEALTH_SAFETY_TIMER_EXPIRE,
+	POWER_SUPPLY_HEALTH_OVERCURRENT,
+	POWER_SUPPLY_HEALTH_WARM,
+	POWER_SUPPLY_HEALTH_COOL,
+	POWER_SUPPLY_HEALTH_HOT,
 };
 
 enum {
@@ -83,6 +89,26 @@ enum {
 	POWER_SUPPLY_SCOPE_SYSTEM,
 	POWER_SUPPLY_SCOPE_DEVICE,
 };
+
+/* BSP.Charge - 2021.03.02 - Add node to show typec_mode start */
+/* Indicates USB Type-C CC connection status */
+enum power_supply_typec_mode {
+	POWER_SUPPLY_TYPEC_NONE,
+
+	/* Acting as source */
+	POWER_SUPPLY_TYPEC_SINK,		/* Rd only */
+	POWER_SUPPLY_TYPEC_SINK_POWERED_CABLE,		/* Rd/Ra */
+	POWER_SUPPLY_TYPEC_SINK_DEBUG_ACCESSORY,	/* Rd/Rd */
+	POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER,		/* Ra/Ra */
+	POWER_SUPPLY_TYPEC_POWERED_CABLE_ONLY,		/* Ra only */
+
+	/* Acting as sink */
+	POWER_SUPPLY_TYPEC_SOURCE_DEFAULT,		/* Rp default */
+	POWER_SUPPLY_TYPEC_SOURCE_MEDIUM,		/* Rp 1.5A */
+	POWER_SUPPLY_TYPEC_SOURCE_HIGH,			/* Rp 3A */
+	POWER_SUPPLY_TYPEC_NON_COMPLIANT,
+};
+/* BSP.Charge - 2021.03.02 - Add node to show typec_mode end */
 
 enum power_supply_property {
 	/* Properties of type `int' */
@@ -149,10 +175,32 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_PRECHARGE_CURRENT,
 	POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT,
 	POWER_SUPPLY_PROP_CALIBRATE,
+	/* BSP.Charge - 2020.11.09 - Add custorm node - start */
+	POWER_SUPPLY_PROP_BATTERY_ID_VOLTAGE,
+	POWER_SUPPLY_PROP_BATTERY_ID,
+	POWER_SUPPLY_PROP_INPUT_SUSPEND,
+	/* BSP.Charge - 2020.11.09 - Add custorm node - end */
+	/* BSP.Charge - 2020.12.01 - Add bms */
+	POWER_SUPPLY_PROP_RESISTANCE,
+	/* BSP.Charge - 2020.11.11 - Add node to show typec_cc_orientation */
+	POWER_SUPPLY_PROPER_TYPEC_CC_ORIENTATION,
+	/* Local extensions */
+	POWER_SUPPLY_PROP_USB_HC,
+	POWER_SUPPLY_PROP_USB_OTG,
+	POWER_SUPPLY_PROP_CHARGE_ENABLED,
+	/* Local extensions of type int64_t */
+	POWER_SUPPLY_PROP_CHARGE_COUNTER_EXT,
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_PROP_MODEL_NAME,
 	POWER_SUPPLY_PROP_MANUFACTURER,
 	POWER_SUPPLY_PROP_SERIAL_NUMBER,
+	/* BSP.Charge - 2020.11.09 - Add custorm node - start */
+	POWER_SUPPLY_PROP_REAL_TYPE,
+	POWER_SUPPLY_PROP_BATTERY_VENDOR,
+	/* BSP.Charge - 2020.11.09 - Add custorm node - end */
+	/* BSP.Charge - 2021.03.02 - Add node to show typec_mode */
+	POWER_SUPPLY_PROP_TYPEC_MODE,
+
 };
 
 enum power_supply_type {
@@ -161,6 +209,8 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_UPS,
 	POWER_SUPPLY_TYPE_MAINS,
 	POWER_SUPPLY_TYPE_USB,			/* Standard Downstream Port */
+/* BSP.Charge - 2020.12.06 - add USB_FLOAT */
+	POWER_SUPPLY_TYPE_USB_FLOAT,
 	POWER_SUPPLY_TYPE_USB_DCP,		/* Dedicated Charging Port */
 	POWER_SUPPLY_TYPE_USB_CDP,		/* Charging Downstream Port */
 	POWER_SUPPLY_TYPE_USB_ACA,		/* Accessory Charger Adapters */
@@ -168,6 +218,14 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_USB_PD,		/* Power Delivery Port */
 	POWER_SUPPLY_TYPE_USB_PD_DRP,		/* PD Dual Role Port */
 	POWER_SUPPLY_TYPE_APPLE_BRICK_ID,	/* Apple Charging Method */
+	POWER_SUPPLY_TYPE_WIRELESS,		/* Wireless Charger */
+/* BSP.Charge - 2020.11.14 - enable 18W charging start */
+#ifdef CONFIG_MTK_SOFT_HVDCP_2
+	POWER_SUPPLY_TYPE_USB_HVDCP,
+#endif
+/* BSP.Charge - 2020.11.14 - enable 18W charging end */
+/* BSP.Charge - 2020.12.01 - Add bms */
+	POWER_SUPPLY_TYPE_BMS,
 };
 
 enum power_supply_notifier_events {
@@ -177,6 +235,7 @@ enum power_supply_notifier_events {
 union power_supply_propval {
 	int intval;
 	const char *strval;
+	int64_t int64val;
 };
 
 struct device_node;
